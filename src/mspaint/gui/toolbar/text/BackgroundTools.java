@@ -1,6 +1,7 @@
 package mspaint.gui.toolbar.text;
 
 import java.awt.Dimension;
+import java.awt.event.ActionListener;
 
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
@@ -35,6 +36,8 @@ public class BackgroundTools extends GridBagPanel {
         group.add(transparent);
         group.add(opaque);
 
+        transparent.setSelected(true);
+
         add(transparent, 0, 0);
         add(opaque, 0, 1);
         add(label, 0, 3);
@@ -44,5 +47,17 @@ public class BackgroundTools extends GridBagPanel {
             gapBottom.setPreferredSize(new Dimension(0, 0));
             add(gapBottom, 0, 2, 1, 1, 1.0, 1.0);
         }
+    }
+
+    public void addChangeListener(ActionListener listener) {
+        transparent.addActionListener(listener);
+        opaque.addActionListener(listener);
+    }
+
+    /**
+     * @return true when text gets the Color 2 background
+     */
+    public boolean isOpaqueBackground() {
+        return opaque.isSelected();
     }
 }

@@ -3,6 +3,7 @@ package mspaint.gui.sidebar;
 import java.awt.BorderLayout;
 import javax.swing.JPanel;
 
+import mspaint.gui.GUIHandler;
 import mspaint.helper.TSeparator;
 import mspaint.style.Style;
 import mspaint.theme.Theme;
@@ -10,12 +11,14 @@ import mspaint.theme.Theme;
 public class FilterSideBar extends JPanel {
     private final Style style;
     private final Theme theme;
+    private final GUIHandler gui;
 
 
-    public FilterSideBar(Style style, Theme theme) {
+    public FilterSideBar(GUIHandler gui) {
         super(new BorderLayout());
-        this.style = style;
-        this.theme = theme;
+        this.gui = gui;
+        this.style = gui.style;
+        this.theme = gui.theme;
         initialWork();
     }
 
@@ -23,7 +26,7 @@ public class FilterSideBar extends JPanel {
         setOpaque(false);
 
         add(new FilterSettings(style, theme), BorderLayout.NORTH);
-        add(new FiltersArea(), BorderLayout.CENTER);
+        add(new FiltersArea(gui), BorderLayout.CENTER);
 
     }
 

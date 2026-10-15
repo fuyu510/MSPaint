@@ -26,7 +26,13 @@ public class MainLauncher {
 
     public static void main(String[] args) {
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            // The GTK look and feel takes its text colors from the desktop theme, which gives
+            // white text on this app's light panels under a dark theme, so use Metal instead.
+            String lookAndFeel = UIManager.getSystemLookAndFeelClassName();
+            if(lookAndFeel.contains("GTK")) {
+                lookAndFeel = UIManager.getCrossPlatformLookAndFeelClassName();
+            }
+            UIManager.setLookAndFeel(lookAndFeel);
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
                 | UnsupportedLookAndFeelException e) {
         }

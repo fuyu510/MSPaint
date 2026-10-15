@@ -1,5 +1,6 @@
 package mspaint.gui.toolbar.home;
 
+import java.awt.Cursor;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Insets;
@@ -61,7 +62,7 @@ public class ShapeTools extends GridBagPanel {
         setupOutline();
         setupFill();
 
-        add(scrollpane, 0, 1, 1, 3);
+        add(scrollpane, 0, 1, 1, 4);
         add(outline, 1, 1, 2, 1);
         add(fill, 1, 2, 1, 1);
         {
@@ -78,12 +79,12 @@ public class ShapeTools extends GridBagPanel {
         label.setHorizontalAlignment(JLabel.CENTER);
         {
             JLabel gapTop = new JLabel();
-            gapTop.setPreferredSize(new Dimension(245, 3));
+            gapTop.setPreferredSize(new Dimension(245, 1));
             add(gapTop, 0, 0, 3, 1);
 
             JLabel gapBottom = new JLabel();
             gapBottom.setPreferredSize(new Dimension(2, 10));
-            add(gapBottom, 0, 4, 3, 1, 1.0, 1.0);
+            add(gapBottom, 1, 4, 2, 1, 1.0, 1.0);
         }
     }
 
@@ -98,13 +99,13 @@ public class ShapeTools extends GridBagPanel {
         roundedRecTool = new ShapeButton(ResourceLoader.getImageIcon("toolbar/shapes/rounded_rectangle_tool.png"), TButton.Type.SELECTABLE);
         polygonTool = new ShapeButton(ResourceLoader.getImageIcon("toolbar/shapes/polygon_tool.png"), TButton.Type.SELECTABLE);
         triangleTool = new ShapeButton(ResourceLoader.getImageIcon("toolbar/shapes/triangle_tool.png"), TButton.Type.SELECTABLE);
-        lineTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        curveTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        ovalTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        rectangleTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        roundedRecTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        polygonTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        triangleTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
+        lineTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        curveTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        ovalTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        rectangleTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        roundedRecTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        polygonTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        triangleTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
         lineTool.setButtonText("Line");
         curveTool.setButtonText("Curve");
         ovalTool.setButtonText("Oval");
@@ -127,13 +128,13 @@ public class ShapeTools extends GridBagPanel {
         rightArrowTool = new ShapeButton(ResourceLoader.getImageIcon("toolbar/shapes/right_arrow_tool.png"), TButton.Type.SELECTABLE);
         leftArrowTool = new ShapeButton(ResourceLoader.getImageIcon("toolbar/shapes/left_arrow_tool.png"), TButton.Type.SELECTABLE);
         upArrowTool = new ShapeButton(ResourceLoader.getImageIcon("toolbar/shapes/up_arrow_tool.png"), TButton.Type.SELECTABLE);
-        rightTriangleTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        diamondTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        pentagonTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        hexagonTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        rightArrowTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        leftArrowTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        upArrowTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
+        rightTriangleTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        diamondTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        pentagonTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        hexagonTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        rightArrowTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        leftArrowTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        upArrowTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
         rightTriangleTool.setButtonText("Right Triangle");
         diamondTool.setButtonText("Diamond");
         pentagonTool.setButtonText("Pentagon");
@@ -156,13 +157,13 @@ public class ShapeTools extends GridBagPanel {
         roundedRecCalloutTool = new ShapeButton(ResourceLoader.getImageIcon("toolbar/shapes/rounded_rec_callout_tool.png"), TButton.Type.SELECTABLE);
         ovalCalloutTool = new ShapeButton(ResourceLoader.getImageIcon("toolbar/shapes/oval_callout_tool.png"), TButton.Type.SELECTABLE);
         cloudCalloutTool = new ShapeButton(ResourceLoader.getImageIcon("toolbar/shapes/cloud_callout_tool.png"), TButton.Type.SELECTABLE);
-        downArrowTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        fourPointStarTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        fivePointStarTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        sixPointStarTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        roundedRecCalloutTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        ovalCalloutTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        cloudCalloutTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
+        downArrowTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        fourPointStarTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        fivePointStarTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        sixPointStarTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        roundedRecCalloutTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        ovalCalloutTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        cloudCalloutTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
        downArrowTool.setButtonText("Down Arrow");
         fourPointStarTool.setButtonText("4 Point Star");
         fivePointStarTool.setButtonText("5 Point Star");
@@ -180,8 +181,8 @@ public class ShapeTools extends GridBagPanel {
 
         heartTool = new ShapeButton(ResourceLoader.getImageIcon("toolbar/shapes/heart_tool.png"), TButton.Type.SELECTABLE);
         lighteningTool = new ShapeButton(ResourceLoader.getImageIcon("toolbar/shapes/lightening_tool.png"), TButton.Type.SELECTABLE);
-        heartTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        lighteningTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
+        heartTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        lighteningTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
         heartTool.setButtonText("Heart");
         lighteningTool.setButtonText("Lightening");
         listPanel.add(heartTool, 0, 3);
@@ -197,6 +198,7 @@ public class ShapeTools extends GridBagPanel {
         // scrollpane.getknob
         // listPanel.setPreferredSize(new Dimension(142, 180));
         scrollpane.setPreferredSize(new Dimension(162, 64));
+        scrollpane.setMinimumSize(new Dimension(162, 64));
     }
 
     private void setTButtonMargin(Insets insets) {
@@ -243,8 +245,8 @@ public class ShapeTools extends GridBagPanel {
         group.add(brush1);
         group.add(oil1);
         group.add(watercolor1);
-        noOutline.setSelected(true);
-        activeOutline = noOutline.getText();
+        solid1.setSelected(true);
+        activeOutline = solid1.getText();
 
         Action action = new Action(true);
         noOutline.addActionListener(action);
@@ -278,7 +280,7 @@ public class ShapeTools extends GridBagPanel {
         group.add(oil2);
         group.add(watercolor2);
         noFill.setSelected(true);
-        activeOutline = noFill.getText();
+        activeFill = noFill.getText();
 
         Action action = new Action(false);
         noFill.addActionListener(action);

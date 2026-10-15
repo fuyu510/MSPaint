@@ -1,5 +1,6 @@
 package mspaint.gui.toolbar.home;
 
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
@@ -92,8 +93,8 @@ public class ImageTools extends GridBagPanel {
 
         rectangularSecItem.setButtonText("Rectangular Selection Tool");
         free_fromSecItem.setButtonText("Free-form Selection Tool");
-        rectangularSecItem.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        free_fromSecItem.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
+        rectangularSecItem.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        free_fromSecItem.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
 
         innerGroup.add(rectangularSecItem);
         innerGroup.add(free_fromSecItem);

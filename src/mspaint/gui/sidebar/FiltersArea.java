@@ -3,20 +3,27 @@ package mspaint.gui.sidebar;
 import java.awt.Insets;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.image.BufferedImage;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 
+import mspaint.action.home.ShapeAction;
+import mspaint.gui.GUIHandler;
+import mspaint.helper.Filters;
 import mspaint.helper.TButton;
 import mspaint.initial_info.InitialValues;
 import com.gmail.mohitsainiknl2.util.gui.GridBagPanel;
 
 public class FiltersArea extends JScrollPane {
     private GridBagPanel panel;
+    private final GUIHandler gui;
 
-    public FiltersArea() {
+    public FiltersArea(GUIHandler gui) {
         super();
+        this.gui = gui;
         setOpaque(false);
         setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         initialWork();
@@ -27,14 +34,13 @@ public class FiltersArea extends JScrollPane {
         panel = new GridBagPanel(new Insets(5, 5, 5, 5));
         panel.setOpaque(false);
 
-        FilterButton filter3 = new FilterButton("Filter 3");
-        panel.add(filter3, 0, 0, 1, 1, 1.0, 0);
-
-        FilterButton filter2 = new FilterButton("Filter 2");
-        panel.add(filter2, 0, 1, 1, 1, 1.0, 0);
-
-        FilterButton filter1 = new FilterButton("Filter 1");
-        panel.add(filter1, 0, 2, 1, 1, 1.0, 0);
+        for(int i = 0; i < Filters.NAMES.length; i++) {
+            final String name = Filters.NAMES[i];
+            FilterButton button = new FilterButton(name);
+            button.addActionListener(e -> applyFilter(name));
+            panel.add(button, 0, i, 1, 1, 1.0, 0);
+        }
+        panel.add(new JLabel(), 0, Filters.NAMES.length, 1, 1, 1.0, 1.0);   // keeps the buttons at the top
 
     }
 
@@ -42,6 +48,27 @@ public class FiltersArea extends JScrollPane {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         panel.updateUI();
+    }
+
+    /**
+     * Filters the selection if there is one, otherwise the active layer.
+     */
+    private void applyFilter(String name) {
+        gui.textAction.commit();
+        ShapeAction.finishPending();
+        gui.history.begin();
+        if(gui.isSelectionActive && gui.viewAction.sImage != null) {
+            gui.viewAction.setFloatingImage(Filters.apply(name, gui.viewAction.sImage));
+        }
+        else {
+            BufferedImage layer = gui.activeImage();
+            BufferedImage result = Filters.apply(name, layer);
+            final int w = layer.getWidth();
+            final int h = layer.getHeight();
+            layer.setRGB(0, 0, w, h, result.getRGB(0, 0, w, h, null, 0, w), 0, w);
+        }
+        gui.history.end();
+        gui.view.repaint();
     }
 
 
@@ -60,7 +87,7 @@ public class FiltersArea extends JScrollPane {
         }
     
         public FilterButton(String text, ImageIcon icon) {
-            super(text, icon, TButton.Type.SELECTABLE);
+            super(text, icon, TButton.Type.NOT_SELECTABLE);
             setOpaque(true);
             setBorderPainted(true);
             setHorizontalAlignment(JButton.CENTER);
@@ -75,7 +102,7 @@ public class FiltersArea extends JScrollPane {
         
         public void resetSize() {
             final int width = InitialValues.sidePanelWith - 30;
-            final int height = (width * 2) / 3;
+            final int height = 34;
             setPreferredSize(new Dimension(width, height));
         }
     }

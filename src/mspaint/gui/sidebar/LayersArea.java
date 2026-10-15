@@ -99,6 +99,28 @@ public class LayersArea extends JPanel {
         }
     }
 
+    /**
+     * Recreates the layer buttons after layers were removed or replaced.
+     */
+    public void rebuild() {
+        panel.removeAll();
+        layerButton.clear();
+        group = new GroupTButtons();
+        length = 0;
+        for(int i = 0; i < gui.layers.size(); i++) {
+            LayerButton button = (i == 0) ? new LayerButton(0, "Main Layer") : new LayerButton(i);
+            layerButton.add(button);
+            group.add(button);
+            ++length;
+        }
+        readdLayersOnPanel();
+        activeLayer = Math.min(activeLayer, gui.layers.size() - 1);
+        layerButton.get(activeLayer).setSelected(true);
+        gui.graphics = gui.activeImage().createGraphics();
+        panel.revalidate();
+        panel.repaint();
+    }
+
     public void repaintLayerButton(int index) {
         layerButton.get(index).repaint();
     }

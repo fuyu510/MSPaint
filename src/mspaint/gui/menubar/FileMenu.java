@@ -6,6 +6,8 @@ import java.awt.Graphics;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.util.List;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -14,6 +16,7 @@ import com.gmail.mohitsainiknl2.util.gui.GridBagPanel;
 
 import mspaint.action.file.FileMenuAction;
 import mspaint.gui.GUIHandler;
+import mspaint.helper.RecentFiles;
 import mspaint.helper.ResourceLoader;
 import mspaint.helper.TButton;
 import mspaint.helper.TMenuSection;
@@ -27,6 +30,8 @@ public class FileMenu extends FileInvoker implements ActionListener {
     private FileButton about, exit;
     private FileButton pngSave, jpegSave, bmpSave, gifSave, otherSave;
     private GUIHandler gui;
+    private GridBagPanel recentPanel;
+    private FileMenuAction action;
     
     public FileMenu(String text, Style style, Theme theme, GUIHandler gui) {
         super(text);
@@ -56,7 +61,7 @@ public class FileMenu extends FileInvoker implements ActionListener {
         about = new FileButton("About", ResourceLoader.getImageIcon("toolbar/file/about.png"), false);
         exit = new FileButton("Exit", ResourceLoader.getImageIcon("toolbar/file/exit.png"), false);
 
-        FileMenuAction action = new FileMenuAction(gui, menu);
+        action = new FileMenuAction(gui, menu);
         newFile.addActionListener(action);
         openFile.addActionListener(action);
         saveFile.addActionListener(action);
@@ -88,19 +93,39 @@ public class FileMenu extends FileInvoker implements ActionListener {
         otherSave.addActionListener(action);
     }
 
+    public FileMenuAction getFileAction() {
+        return action;
+    }
+
     private GridBagPanel getRecentOptionPanel() {
-        GridBagPanel panel = new GridBagPanel();
-        panel.setOpaque(false);
+        recentPanel = new GridBagPanel();
+        recentPanel.setOpaque(false);
+        refreshRecent();
+        return recentPanel;
+    }
+
+    /**
+     * Lists the recently opened or saved pictures; clicking one opens it.
+     */
+    private void refreshRecent() {
+        recentPanel.removeAll();
         TMenuSection recent = new TMenuSection("Recent pictures", true);
         recent.setPreferredSize(new Dimension(320, 20));
-        panel.add(recent, 0, 0);
-        panel.add(new TButton("1. 12998974.jpeg", TButton.Type.NOT_SELECTABLE), 0, 1);
-        panel.add(new TButton("2. 12998975.png", TButton.Type.NOT_SELECTABLE), 0, 2);
-        panel.add(new TButton("3. 12998976.jpeg", TButton.Type.NOT_SELECTABLE), 0, 3);
-        panel.add(new TButton("4. 12998977.jpeg", TButton.Type.NOT_SELECTABLE), 0, 4);
-        panel.add(new JLabel(), 0, 15, 1, 1, 1.0, 1.0);
-
-        return panel;
+        recentPanel.add(recent, 0, 0);
+        List<File> files = RecentFiles.list();
+        for(int i = 0; i < files.size(); i++) {
+            final File file = files.get(i);
+            TButton button = new TButton((i + 1) + ". " + file.getName(), TButton.Type.NOT_SELECTABLE);
+            button.setToolTipText(file.getPath());
+            button.addActionListener(e -> {
+                menu.setVisible(false);
+                gui.textAction.commit();
+                action.open(file);
+            });
+            recentPanel.add(button, 0, i + 1);
+        }
+        recentPanel.add(new JLabel(), 0, 15, 1, 1, 1.0, 1.0);
+        recentPanel.revalidate();
     }
 
     private GridBagPanel getSaveasOptionPanel() {
@@ -156,6 +181,7 @@ public class FileMenu extends FileInvoker implements ActionListener {
             menu.setVisible(false);
         }
         else {
+            refreshRecent();
             menu.show(this, 0, 0);
         }
     }

@@ -1,6 +1,7 @@
 package mspaint.gui.toolbar.text;
 
 import java.awt.Dimension;
+import java.awt.event.ActionListener;
 
 import javax.swing.ImageIcon;
 import javax.swing.JComboBox;
@@ -18,6 +19,8 @@ public class FontTool extends GridBagPanel {
     private SystemFontNameJComboBox nameBox;
     private JComboBox<Integer> sizeBox;
     private TButton bold, italic, underline, strike;
+    private static final String DEFAULT_FONT = "SansSerif";
+    private static final int DEFAULT_SIZE = 12;
     
     public FontTool(Theme theme) {
         super();
@@ -29,6 +32,7 @@ public class FontTool extends GridBagPanel {
         setOpaque(false);
         setupSize();
         nameBox = new SystemFontNameJComboBox();
+        nameBox.setSelectedItem(DEFAULT_FONT);
         nameBox.setBorder(new LineBorder(theme.getBorderColor(), 1));
         bold = new TButton(ResourceLoader.getImageIcon("toolbar/text/bold_style_font.png"), TButton.Type.SELECTABLE_AND_UNSELECTABLE);
         italic = new TButton(ResourceLoader.getImageIcon("toolbar/text/italic_style_font.png"), TButton.Type.SELECTABLE_AND_UNSELECTABLE);
@@ -57,10 +61,52 @@ public class FontTool extends GridBagPanel {
     private void setupSize() {
         Integer[] size = new Integer[] {10, 12, 14, 16, 18, 20, 24, 28, 36, 72};
         sizeBox = new JComboBox<>(size);
-        sizeBox.setSelectedItem(0);
+        sizeBox.setSelectedItem(DEFAULT_SIZE);
         sizeBox.setEditable(true);
         sizeBox.setBorder(new LineBorder(theme.getBorderColor(), 1));
         sizeBox.setPreferredSize(new Dimension(43, 22));
+    }
+
+    /**
+     * Calls the listener whenever the font name, size or a style button changes.
+     */
+    public void addChangeListener(ActionListener listener) {
+        nameBox.addActionListener(listener);
+        sizeBox.addActionListener(listener);
+        bold.addActionListener(listener);
+        italic.addActionListener(listener);
+        underline.addActionListener(listener);
+        strike.addActionListener(listener);
+    }
+
+    public String getFontName() {
+        final Object name = nameBox.getSelectedItem();
+        return (name == null || name.toString().isBlank()) ? DEFAULT_FONT : name.toString().trim();
+    }
+
+    public int getFontSize() {
+        try {
+            final int size = Integer.parseInt(String.valueOf(sizeBox.getSelectedItem()).trim());
+            return (size > 0) ? size : DEFAULT_SIZE;
+        } catch (NumberFormatException e) {
+            return DEFAULT_SIZE;
+        }
+    }
+
+    public boolean isBold() {
+        return bold.isSelected();
+    }
+
+    public boolean isItalic() {
+        return italic.isSelected();
+    }
+
+    public boolean isUnderline() {
+        return underline.isSelected();
+    }
+
+    public boolean isStrike() {
+        return strike.isSelected();
     }
 
 

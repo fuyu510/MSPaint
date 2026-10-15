@@ -1,5 +1,6 @@
 package mspaint.gui.toolbar.home;
 
+import java.awt.Cursor;
 import java.awt.Dimension;
 
 import java.awt.Insets;
@@ -67,15 +68,15 @@ public class BrushTools extends GridBagPanel {
         colorPencilTool.setButtonText("Color Pencil");
         waterColorBrushTool.setButtonText("Watercolor Brush");
 
-        lineBrushTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        calligraphyBrush1Tool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        calligraphyBrush2Tool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        airBrushTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        oilBrushTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        crayonTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        markerTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        colorPencilTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
-        waterColorBrushTool.setViewCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16));
+        lineBrushTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        calligraphyBrush1Tool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        calligraphyBrush2Tool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        airBrushTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        oilBrushTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        crayonTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        markerTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        colorPencilTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        waterColorBrushTool.setViewCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
 
         innerGroup.add(lineBrushTool);
         innerGroup.add(calligraphyBrush1Tool);

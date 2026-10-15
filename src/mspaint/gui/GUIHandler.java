@@ -15,13 +15,23 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseWheelEvent;
 
+import javax.swing.AbstractAction;
 import javax.swing.ImageIcon;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JViewport;
+import javax.swing.SwingUtilities;
+import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.border.LineBorder;
 
@@ -29,6 +39,9 @@ import mspaint.action.SideBarAction;
 import mspaint.action.SideBarResizer;
 import mspaint.action.home.LayersShortcutAction;
 import mspaint.action.home.ShapeAction;
+import mspaint.action.home.TextAction;
+import mspaint.action.home.ImageAction;
+import mspaint.gui.toolbar.home.ClipboardTools;
 import mspaint.action.view.FloatCanvasAction;
 import mspaint.action.view.FullScreenAction;
 import mspaint.action.view.ShowAndHideAction;
@@ -45,7 +58,9 @@ import mspaint.gui.toolbar.HomeToolBar;
 import mspaint.gui.toolbar.TextToolBar;
 import mspaint.gui.toolbar.ViewToolBar;
 import mspaint.helper.DropTools;
+import mspaint.helper.History;
 import mspaint.helper.Layer;
+import mspaint.gui.sidebar.LayersArea;
 import mspaint.helper.ResourceLoader;
 import mspaint.helper.View;
 import mspaint.helper.ViewHolder;
@@ -85,6 +100,9 @@ public class GUIHandler {
     public BufferedImage cpyImage;
     public MainViewAction viewAction;
     public boolean isSelectionActive;
+    public History history;
+    public TextAction textAction;
+    public java.io.File currentFile;
 
     private JPanel topPanel;
     private JPanel topMenubar;
@@ -127,6 +145,8 @@ public class GUIHandler {
             frame.getContentPane().add(viewport, BorderLayout.CENTER);
             frame.getContentPane().add(statusbar, BorderLayout.SOUTH);
         }
+        prepareShortcuts();
+        updateImageInfo();
         frame.setSize(InitialValues.frameSize);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -145,6 +165,8 @@ public class GUIHandler {
         shapeImage = new BufferedImage(mainImage.getWidth(), mainImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
         shapeGraphics = shapeImage.createGraphics();
         view = new View(this);
+        history = new History(this);
+        textAction = new TextAction(this);
 
         holder = new ViewHolder(view);
         imageViewPort = new JPanel(new GridBagLayout());
@@ -153,7 +175,19 @@ public class GUIHandler {
         imageViewPort.add(holder, gbc);
         imageViewPort.setBackground(theme.getViewportBgColor());
 
-        scrollpane = new JScrollPane(imageViewPort);
+        scrollpane = new JScrollPane(imageViewPort) {
+            @Override
+            protected void processMouseWheelEvent(MouseWheelEvent e) {
+                // Ctrl + wheel zooms (up: in, down: out); the plain wheel still scrolls
+                if(e.isControlDown()) {
+                    zoomByWheel(e);
+                    e.consume();
+                }
+                else {
+                    super.processMouseWheelEvent(e);
+                }
+            }
+        };
 		scrollpane.setBorder(new LineBorder(Color.WHITE, 0));
         scrollpane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollpane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -171,15 +205,194 @@ public class GUIHandler {
         viewport.add(sidePanel, BorderLayout.EAST);
     }
 
-    public void setMainImage(BufferedImage image) {
-        mainImage = ClipboardAction.clone(image);
-        graphics = mainImage.createGraphics();
-        tempImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        shapeImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        view = new View(this);
-        holder.removeAll();
-        holder.add(view);
-        holder.updateUI();
+    public void showTextToolBar() {
+        textButton.setSelected(true);
+        setTopMenuSelection(true, "Text");
+    }
+
+    public void showHomeToolBar() {
+        homeButton.setSelected(true);
+        setTopMenuSelection(true, "Home");
+    }
+
+    private void prepareShortcuts() {
+        JComponent root = frame.getRootPane();
+        InputMap inputMap = root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK), "undo");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_Y, InputEvent.CTRL_DOWN_MASK), "redo");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "redo");
+        root.getActionMap().put("undo", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                history.undo();
+            }
+        });
+        root.getActionMap().put("redo", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                history.redo();
+            }
+        });
+
+        // while a text box has the focus it handles Ctrl+A/C/X/V and Delete itself
+        final int ctrl = InputEvent.CTRL_DOWN_MASK;
+        bindKey(KeyEvent.VK_N, ctrl, "new", () -> fileMenu.getFileAction().newFile());
+        bindKey(KeyEvent.VK_O, ctrl, "open", () -> fileMenu.getFileAction().open());
+        bindKey(KeyEvent.VK_S, ctrl, "save", () -> fileMenu.getFileAction().save());
+        bindKey(KeyEvent.VK_F12, 0, "saveAs", () -> fileMenu.getFileAction().saveAs(null));
+        bindKey(KeyEvent.VK_P, ctrl, "print", () -> fileMenu.getFileAction().print());
+        bindKey(KeyEvent.VK_A, ctrl, "selectAll", () -> homeToolBar.imageTools.selectAllItem.doClick());
+        bindKey(KeyEvent.VK_DELETE, 0, "delete", () -> homeToolBar.imageTools.deleteItem.doClick());
+        bindKey(KeyEvent.VK_X, ctrl, "cut", () -> homeToolBar.clipboardTools.cutTool.doClick());
+        bindKey(KeyEvent.VK_C, ctrl, "copy", () -> homeToolBar.clipboardTools.copyTool.doClick());
+        bindKey(KeyEvent.VK_V, ctrl, "paste", () -> homeToolBar.clipboardTools.pasteItem.doClick());
+        bindKey(KeyEvent.VK_W, ctrl, "resize", () -> homeToolBar.imageTools.resizeTool.doClick());
+    }
+
+    private void bindKey(int key, int modifiers, String name, Runnable action) {
+        JComponent root = frame.getRootPane();
+        root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(key, modifiers), name);
+        root.getActionMap().put(name, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                action.run();
+            }
+        });
+    }
+
+    /**
+     * Zooms one step per wheel notch, keeping the picture point under the mouse in place.
+     */
+    private void zoomByWheel(MouseWheelEvent e) {
+        int direction = e.getWheelRotation();
+        if(direction == 0) {
+            direction = (int) Math.signum(e.getPreciseWheelRotation());
+        }
+        final int value = Math.max(zoomSlider.getMinimum(), Math.min(zoomSlider.getMaximum(), zoomSlider.getValue() - direction));
+        if(value == zoomSlider.getValue()) {
+            return;
+        }
+        final JViewport viewport = scrollpane.getViewport();
+        final java.awt.Point mouse = SwingUtilities.convertPoint(scrollpane, e.getPoint(), viewport);
+        final java.awt.Point inView = SwingUtilities.convertPoint(viewport, mouse, view);
+        final double oldScale = view.scale;
+
+        zoomSlider.setValue(value);
+        scrollpane.validate();
+
+        final double ratio = view.scale / oldScale;
+        final java.awt.Point newInView = new java.awt.Point((int) (inView.x * ratio), (int) (inView.y * ratio));
+        final java.awt.Point newInViewport = SwingUtilities.convertPoint(view, newInView, imageViewPort);
+        final java.awt.Dimension extent = viewport.getExtentSize();
+        final java.awt.Dimension size = imageViewPort.getSize();
+        final int x = Math.max(0, Math.min(size.width - extent.width, newInViewport.x - mouse.x));
+        final int y = Math.max(0, Math.min(size.height - extent.height, newInViewport.y - mouse.y));
+        viewport.setViewPosition(new java.awt.Point(x, y));
+    }
+
+    /**
+     * The image of the layer selected in the Layers side bar, where the tools draw.
+     */
+    public BufferedImage activeImage() {
+        return layers.get(LayersArea.activeLayer).image;
+    }
+
+    /**
+     * All visible layers flattened into one image, e.g. for saving or printing.
+     */
+    public BufferedImage mergedImage() {
+        BufferedImage merged = new BufferedImage(mainImage.getWidth(), mainImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = merged.createGraphics();
+        for(Layer layer : layers) {
+            if(layer.isVisible) {
+                g.drawImage(layer.image, 0, 0, null);
+            }
+        }
+        g.dispose();
+        return merged;
+    }
+
+    /**
+     * Replaces the image of every layer (one image per layer, in order); the canvas takes their size.
+     */
+    public void setLayerImages(List<BufferedImage> images) {
+        for(int i = 0; i < layers.size(); i++) {
+            layers.get(i).image = toARGB(images.get(i));
+        }
+        mainImage = layers.get(0).image;
+        graphics = activeImage().createGraphics();
+        final int width = mainImage.getWidth();
+        final int height = mainImage.getHeight();
+        if(tempImage.getWidth() != width || tempImage.getHeight() != height) {
+            tempImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+            tempGraphics = tempImage.createGraphics();
+            shapeImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+            shapeGraphics = shapeImage.createGraphics();
+        }
+        view.resetSize();
+        view.revalidate();
+        holder.revalidate();
+        imageViewPort.revalidate();
+        view.repaint();
+        updateImageInfo();
+    }
+
+    private static BufferedImage toARGB(BufferedImage image) {
+        if(image.getType() == BufferedImage.TYPE_INT_ARGB) {
+            return image;
+        }
+        return ClipboardAction.clone(image);
+    }
+
+    /**
+     * Starts over with a single layer holding the image, e.g. for File > New or Open.
+     */
+    public void newDocument(BufferedImage image, java.io.File file) {
+        textAction.cancel();
+        ShapeAction.cancelPending();
+        viewAction.cancelSelection();
+        while(layers.size() > 1) {
+            layers.remove(layers.size() - 1);
+        }
+        layers.get(0).isVisible = true;
+        LayersArea.activeLayer = 0;
+        currentFile = file;
+        setLayerImages(java.util.Collections.singletonList(image));
+        layerSideBar.layersArea.rebuild();
+        history.clear();
+    }
+
+    /**
+     * Removes the layer selected in the Layers side bar; the last remaining layer cannot be removed.
+     */
+    public void deleteActiveLayer() {
+        if(layers.size() <= 1) {
+            return;
+        }
+        textAction.commit();
+        viewAction.drawImageSelected();
+        final int index = LayersArea.activeLayer;
+        layers.remove(index);
+        history.removeLayer(index);
+        LayersArea.activeLayer = Math.max(0, index - 1);
+        mainImage = layers.get(0).image;
+        layerSideBar.layersArea.rebuild();
+        view.repaint();
+    }
+
+    /**
+     * Shows the canvas size and the size of the current file in the status bar.
+     */
+    public void updateImageInfo() {
+        imageResoLabel.setText(mainImage.getWidth() + " \u00d7 " + mainImage.getHeight() + "px");
+        if(currentFile != null && currentFile.isFile()) {
+            final long bytes = currentFile.length();
+            imageSizeLabel.setText((bytes < 1024) ? bytes + "B" : String.format("%.1fKB", bytes / 1024.0));
+        }
+        else {
+            imageSizeLabel.setText("");
+        }
+        frame.setTitle(((currentFile != null) ? currentFile.getName() : "Untitled") + " - MSPaint");
     }
 
     private void prepareTopPanel() {
@@ -218,12 +431,22 @@ public class GUIHandler {
 
         homeToolBar.imageTools.selectAllItem.addActionListener(viewAction);
         homeToolBar.imageTools.deleteItem.addActionListener(viewAction);
-        homeToolBar.imageTools.cropTool.addActionListener(new ClipboardAction(this));
-        homeToolBar.clipboardTools.cutTool.addActionListener(new ClipboardAction(this));
-        homeToolBar.clipboardTools.copyTool.addActionListener(new ClipboardAction(this));
-        homeToolBar.clipboardTools.pasteTool.getTButton().addActionListener(new ClipboardAction(this));
-        homeToolBar.clipboardTools.pasteItem.addActionListener(new ClipboardAction(this));
-        homeToolBar.clipboardTools.pasteImportItem.addActionListener(new ClipboardAction(this));
+        ImageAction imageAction = new ImageAction(this);
+        homeToolBar.imageTools.cropTool.addActionListener(imageAction);
+        homeToolBar.imageTools.resizeTool.addActionListener(imageAction);
+        homeToolBar.imageTools.rotateRight_90.addActionListener(imageAction);
+        homeToolBar.imageTools.rotateLeft_90.addActionListener(imageAction);
+        homeToolBar.imageTools.rotate_180.addActionListener(imageAction);
+        homeToolBar.imageTools.flipVertical.addActionListener(imageAction);
+        homeToolBar.imageTools.flipHorizonal.addActionListener(imageAction);
+
+        ClipboardAction clipboardAction = new ClipboardAction(this);
+        for(ClipboardTools tools : new ClipboardTools[] {homeToolBar.clipboardTools, textToolBar.clipboardTools}) {
+            tools.cutTool.addActionListener(clipboardAction);
+            tools.copyTool.addActionListener(clipboardAction);
+            tools.pasteItem.addActionListener(clipboardAction);
+            tools.pasteImportItem.addActionListener(clipboardAction);
+        }
 
         toolCard = new CardLayout();
         toolbar = new JPanel(toolCard);
@@ -280,7 +503,7 @@ public class GUIHandler {
     
     private void prepareSidePanel() {
         layerSideBar = new LayerSideBar(this, style, theme); 
-        filterSideBar = new FilterSideBar(style, theme); 
+        filterSideBar = new FilterSideBar(this); 
         sideCard = new CardLayout();
         sidebar = new JPanel(sideCard);
         sidebar.setOpaque(false);
@@ -389,10 +612,10 @@ public class GUIHandler {
 
     private void prepareStatusbar() {
         final Font zoomFont = new Font("00", Font.PLAIN, 12);
-        pointerLocLabel = new JLabel("00", ResourceLoader.getImageIcon("statusbar/pointer_location_symbol.png"), JLabel.CENTER);
-        selectionResoLabel = new JLabel("00", ResourceLoader.getImageIcon("statusbar/selection_reso_symbol.png"), JLabel.CENTER);
-        imageResoLabel = new JLabel("00", ResourceLoader.getImageIcon("statusbar/image_reso_symbol.png"), JLabel.CENTER);
-        imageSizeLabel = new JLabel("00", ResourceLoader.getImageIcon("statusbar/image_size_symbol.png"), JLabel.CENTER);
+        pointerLocLabel = new JLabel("", ResourceLoader.getImageIcon("statusbar/pointer_location_symbol.png"), JLabel.CENTER);
+        selectionResoLabel = new JLabel("", ResourceLoader.getImageIcon("statusbar/selection_reso_symbol.png"), JLabel.CENTER);
+        imageResoLabel = new JLabel("", ResourceLoader.getImageIcon("statusbar/image_reso_symbol.png"), JLabel.CENTER);
+        imageSizeLabel = new JLabel("", ResourceLoader.getImageIcon("statusbar/image_size_symbol.png"), JLabel.CENTER);
         {
             pointerLocLabel.setFont(zoomFont);
             selectionResoLabel.setFont(zoomFont);
@@ -422,7 +645,7 @@ public class GUIHandler {
             final int height = 25;
             pointerLocLabel.setPreferredSize(new Dimension(width, height));
             selectionResoLabel.setPreferredSize(new Dimension(width, height));
-            imageResoLabel.setPreferredSize(new Dimension(width, height));
+            imageResoLabel.setPreferredSize(new Dimension(width + 40, height));
             imageSizeLabel.setPreferredSize(new Dimension(width, height));
 
             pointerLocLabel.setHorizontalAlignment(JLabel.LEFT);

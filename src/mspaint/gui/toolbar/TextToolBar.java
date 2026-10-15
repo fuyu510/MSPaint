@@ -4,6 +4,7 @@ import java.awt.Graphics;
 import java.awt.Color;
 
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
 import mspaint.gui.GUIHandler;
@@ -19,6 +20,9 @@ import com.gmail.mohitsainiknl2.util.gui.GridBagPanel;
 public class TextToolBar extends GridBagPanel {
     private Theme theme;
     private GUIHandler gui;
+    public ClipboardTools clipboardTools;
+    public FontTool fontTool;
+    public BackgroundTools backgroundTools;
     
     public TextToolBar(GUIHandler gui, Style style, Theme theme) {
         super();
@@ -46,13 +50,18 @@ public class TextToolBar extends GridBagPanel {
 
 
     public void load_textToolBar() {
-        add(new ClipboardTools(), 0, 0);
+        clipboardTools = new ClipboardTools();
+        add(clipboardTools, 0, 0);
         addSeparator(1, 0);
 
-        add(new FontTool(theme), 2, 0);
+        fontTool = new FontTool(theme);
+        fontTool.addChangeListener(e -> SwingUtilities.invokeLater(gui.textAction::updateStyle)); // after the button has toggled
+        add(fontTool, 2, 0);
         addSeparator(3, 0);
 
-        add(new BackgroundTools(), 4, 0);
+        backgroundTools = new BackgroundTools();
+        backgroundTools.addChangeListener(e -> SwingUtilities.invokeLater(gui.textAction::updateStyle)); // after the button has toggled
+        add(backgroundTools, 4, 0);
         addSeparator(5, 0);
         
         add(new ColorPlateTool(gui), 6, 0);

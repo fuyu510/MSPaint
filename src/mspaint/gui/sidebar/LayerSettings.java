@@ -93,7 +93,7 @@ public class LayerSettings extends JPanel {
                 gui.layerSideBar.layersArea.updateUI();
             }
             else if(button.getText().equals("Delete Layer")) {
-                
+                gui.deleteActiveLayer();
             }
             else if(button.getText().equals("Show/Hide Layer")) {
                 final int activeLayer = LayersArea.activeLayer;

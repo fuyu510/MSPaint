@@ -45,6 +45,10 @@ public class MainTools extends GridBagPanel {
         
         pencilTool.setButtonText("Pencil Tool");
         pencilTool.addActionListener(new Action());
+        textTool.setButtonText("Text Tool");
+        textTool.addActionListener(new Action());
+        fillTool.setButtonText("Fill Tool");
+        fillTool.addActionListener(new Action());
         colorPickerTool.setButtonText("Color Picker Tool");
         colorPickerTool.addActionListener(new Action());
         eraserTool.setButtonText("Eraser Tool");

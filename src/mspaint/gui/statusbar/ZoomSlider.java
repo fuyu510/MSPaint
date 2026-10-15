@@ -72,7 +72,18 @@ public class ZoomSlider extends JSlider implements ChangeListener {
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        zoomStatus.setText(((ZoomSlider)e.getSource()).getRealValue() + "%");
+        zoomStatus.setText(getRealValue() + "%");
+        if(gui.view == null) {
+            return;
+        }
+        final double scale = getRealValue() / 100.0;
+        if(scale != gui.view.scale) {
+            gui.view.scale = scale;
+            gui.view.resetSize();
+            gui.view.revalidate();
+            gui.view.repaint();
+            gui.textAction.updateStyle();   // keeps an open text box at the right place and size
+        }
     }
 
 

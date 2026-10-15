@@ -230,6 +230,7 @@ public class ColorPlateTool extends GridBagPanel {
             setFocusable(false);
             setBorderPainted(false);
             setPreferredSize(new Dimension(width, height));
+            setMinimumSize(new Dimension(width, height));
             backImg = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             Graphics gImg = backImg.createGraphics();
             gImg.setColor(new Color(160, 160, 160));

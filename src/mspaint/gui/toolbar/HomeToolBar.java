@@ -1,6 +1,9 @@
 package mspaint.gui.toolbar;
 
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Graphics;
+import java.awt.Insets;
 
 import javax.swing.JLabel;
 import javax.swing.border.EmptyBorder;
@@ -55,6 +58,34 @@ public class HomeToolBar extends GridBagPanel {
 
         g.setColor(theme.getBgColor());
         g.drawLine(59, 0, 114, 0);
+    }
+
+    @Override
+    public void doLayout() {
+        super.doLayout();
+        // When the window is narrower than the tool bar, GridBagLayout squeezes the first tool
+        // groups to zero width; instead keep every group at full size and let the right side be cut off.
+        if(getWidth() < getPreferredSize().width) {
+            final Insets insets = getInsets();
+            final int height = getHeight() - insets.top - insets.bottom;
+            int x = insets.left;
+            for(Component c : getComponents()) {
+                final int width = c.getPreferredSize().width;
+                c.setBounds(x, insets.top, width, height);
+                relayout(c);
+                x += width;
+            }
+        }
+    }
+
+    private static void relayout(Component c) {
+        if(c instanceof Container) {
+            Container container = (Container) c;
+            container.doLayout();
+            for(Component child : container.getComponents()) {
+                relayout(child);
+            }
+        }
     }
 
     public void load_homeToolBar() {

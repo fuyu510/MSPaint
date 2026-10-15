@@ -4,6 +4,9 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.BasicStroke;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.geom.Path2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -16,6 +19,7 @@ import mspaint.gui.GUIHandler;
 import mspaint.helper.Point;
 import mspaint.helper.ResourceLoader;
 import mspaint.helper.TButton;
+import mspaint.helper.Texture;
 import mspaint.gui.toolbar.home.ColorPlateTool.ColorButton;
 import mspaint.gui.toolbar.home.Image.RecSelectionTool;
 import mspaint.gui.toolbar.home.brushes.AirBrushTool;
@@ -27,7 +31,9 @@ import mspaint.gui.toolbar.home.brushes.LineBrushTool;
 import mspaint.gui.toolbar.home.brushes.MarkerTool;
 import mspaint.gui.toolbar.home.brushes.OilBrushTool;
 import mspaint.gui.toolbar.home.brushes.WatercolorBrushTool;
+import mspaint.gui.toolbar.home.main.FillTool;
 import mspaint.gui.toolbar.home.main.PencilTool;
+import mspaint.gui.sidebar.LayersArea;
 
 /**
  * Action
@@ -40,6 +46,7 @@ public class MainViewAction extends MouseAdapter implements ActionListener {
     public boolean isInSelection;
     public BufferedImage sImage;
     private Point imgLoc, temps, tempe;
+    private Path2D freePath = new Path2D.Double();
     private TButton cutTool, copyTool, cropTool;
 
     public MainViewAction(GUIHandler gui) {
@@ -74,10 +81,19 @@ public class MainViewAction extends MouseAdapter implements ActionListener {
                 }
                 else {
                     clearImage(gui.tempImage);
-                    RecSelectionTool.setTempImage(gui.tempImage);
-                    RecSelectionTool.draw(startPoint, endPoint);
-                    final int w = x - startPoint.x;
-                    final int h = y - startPoint.y;
+                    if(isFreeForm()) {
+                        freePath.lineTo(x, y);
+                        Graphics2D g = gui.tempImage.createGraphics();
+                        g.setPaint(Texture.getSelectionPaint());
+                        g.draw(freePath);
+                        g.dispose();
+                    }
+                    else {
+                        RecSelectionTool.setTempImage(gui.tempImage);
+                        RecSelectionTool.draw(startPoint, endPoint);
+                    }
+                    final int w = Math.abs(x - startPoint.x);
+                    final int h = Math.abs(y - startPoint.y);
                     gui.selectionResoLabel.setText(w + " ," + h + " px");
                     isDragging = true;
                 }
@@ -116,7 +132,7 @@ public class MainViewAction extends MouseAdapter implements ActionListener {
                 isInSelection = true;
             }
             else {
-                gui.view.setCursor(TButton.getCursor(ResourceLoader.getImage("cursors/null_cursor.png"), new Point(16, 16)));
+                gui.view.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
                 isInSelection = false;
             }
         }
@@ -127,6 +143,7 @@ public class MainViewAction extends MouseAdapter implements ActionListener {
         final int x = (int) (e.getX() * (1/gui.view.scale));
         final int y = (int) (e.getY() * (1/gui.view.scale));
         clickIsInBrushTools(new Point(x, y));
+        gui.history.end();
     }
 
     @Override
@@ -134,11 +151,27 @@ public class MainViewAction extends MouseAdapter implements ActionListener {
         final int x = (int) (e.getX() * (1/gui.view.scale));
         final int y = (int) (e.getY() * (1/gui.view.scale));
         startPoint.resetPoint(x, y);
+        if(gui.textAction.isEditing()) {
+            // a click outside the text box finishes the text
+            gui.textAction.commit();
+            if(gui.activeToolName.equals("Text Tool")) {
+                return;
+            }
+        }
+        gui.history.begin();
+        if(!ShapeAction.hasPending(gui.activeToolName)) {
+            ShapeAction.finishPending();
+        }
         if(!isInSelection) {
             drawImageSelected();
+            freePath = new Path2D.Double();
+            freePath.moveTo(x, y);
         }
         if(gui.activeToolName.equals("Color Picker Tool")) {
-            int rgb = gui.mainImage.getRGB(x, y);
+            if(x < 0 || y < 0 || x >= gui.mainImage.getWidth() || y >= gui.mainImage.getHeight()) {
+                return;
+            }
+            int rgb = gui.activeImage().getRGB(x, y);
             Color c = new Color(rgb);
             c = new Color(c.getRed(), c.getGreen(), c.getBlue(), 255);
             ColorButton color1 = gui.homeToolBar.colorPlate.color1Button;
@@ -153,6 +186,14 @@ public class MainViewAction extends MouseAdapter implements ActionListener {
                 color2.setColor(c);
                 color2.repaint();
             }
+        }
+        else if(gui.activeToolName.equals("Text Tool")) {
+            gui.textAction.start(x, y);
+        }
+        else if(gui.activeToolName.equals("Fill Tool")) {
+            Color color = SwingUtilities.isRightMouseButton(e) ? gui.activeColor2 : gui.activeColor1;
+            FillTool.fill(gui.layers.get(LayersArea.activeLayer).image, x, y, color);
+            gui.view.repaint();
         }
         else if(gui.activeToolName.equals("Zoom Tool")) {
             if(SwingUtilities.isRightMouseButton(e)) {
@@ -169,11 +210,12 @@ public class MainViewAction extends MouseAdapter implements ActionListener {
         if(!ShapeAction.mouseReleased(e)) {
             if(gui.activeToolName.equals("Rectangular Selection Tool") || gui.activeToolName.equals("Free-form Selection Tool")) {
                 if(isDragging) {
-                    final int x = startPoint.x;
-                    final int y = startPoint.y;
-                    final int w = endPoint.x - x;
-                    final int h = endPoint.y - y;
-                    setSelection(x, y, w, h, false);
+                    if(isFreeForm()) {
+                        setFreeFormSelection(freePath);
+                    }
+                    else {
+                        setSelection(startPoint.x, startPoint.y, endPoint.x - startPoint.x, endPoint.y - startPoint.y, false);
+                    }
                     isDragging = false;
                 }
                 else if(isDraggingImage) {
@@ -182,6 +224,7 @@ public class MainViewAction extends MouseAdapter implements ActionListener {
                 }
             }
         }
+        gui.history.end();
     }
 
     @Override
@@ -224,25 +267,41 @@ public class MainViewAction extends MouseAdapter implements ActionListener {
         }
     }
 
-    public static BufferedImage getAndClearSelection(final BufferedImage image, final int x, final int y, final int w, final int h) {
-        final int width = image.getWidth();
-        final int height = image.getHeight();
-        final Color color = new Color(0, 0, 0, 0);
-        BufferedImage subImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+    /**
+     * Makes the pixels of the rectangle transparent (clipped to the image).
+     */
+    public static void clearArea(final BufferedImage image, int x, int y, int w, int h) {
+        Rectangle area = new Rectangle(x, y, w, h).intersection(new Rectangle(0, 0, image.getWidth(), image.getHeight()));
+        if(!area.isEmpty()) {
+            image.setRGB(area.x, area.y, area.width, area.height, new int[area.width * area.height], 0, area.width);
+        }
+    }
 
-        for(int i= 0 ; i < width ; i++){
-            for(int j = 0 ; j < height; j++){
-                if((x < i && i < (x+w)) && (y < j && j < (y+h))) {
-                    subImage.setRGB(i, j, image.getRGB(i, j));
-                    image.setRGB(i, j, color.getRGB());
+    /**
+     * Cuts the pixels inside the area (and inside the mask, if given) out of the active layer.
+     */
+    private BufferedImage liftPixels(Rectangle area, Shape mask) {
+        final BufferedImage source = gui.activeImage();
+        final int w = area.width;
+        final int h = area.height;
+        int[] pixels = source.getRGB(area.x, area.y, w, h, null, 0, w);
+        int[] lifted = new int[w * h];
+        for(int j = 0; j < h; j++) {
+            for(int i = 0; i < w; i++) {
+                if(mask == null || mask.contains(area.x + i + 0.5, area.y + j + 0.5)) {
+                    lifted[j * w + i] = pixels[j * w + i];
+                    pixels[j * w + i] = 0;
                 }
             }
         }
-        try {
-            return subImage.getSubimage(x, y, w, h);
-        } catch (Exception e) {
-            return null;
-        }
+        source.setRGB(area.x, area.y, w, h, pixels, 0, w);
+        BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        image.setRGB(0, 0, w, h, lifted, 0, w);
+        return image;
+    }
+
+    private boolean isFreeForm() {
+        return gui.activeToolName.equals("Free-form Selection Tool");
     }
 
     public void pasteImage(BufferedImage image) {
@@ -250,62 +309,72 @@ public class MainViewAction extends MouseAdapter implements ActionListener {
     }
 
     public void pasteImage(BufferedImage image, final int x, final int y) {
-        startPoint.x = x;
-        startPoint.y = y;
-        final int w = image.getWidth();
-        final int h = image.getHeight();
-        endPoint.x  = x + w;
-        endPoint.y  = y + h;
-
         drawImageSelected();
-        if(!gui.isSelectionActive) {
-            imgLoc = new Point(x, y);
-            temps = new Point(x, y);
-            tempe = new Point(endPoint.x, endPoint.y);
-        }
-        clearImage(gui.tempImage);
-        RecSelectionTool.setTempImage(gui.tempImage);
-        RecSelectionTool.draw(startPoint, new Point(startPoint.x + w, startPoint.y + h));
-
-        sImage = ClipboardAction.clone(image);
-        gui.tempGraphics.drawImage(sImage, null, x, y);
-        gui.view.repaint();
-        gui.selectionResoLabel.setText(w + " ," + h + " px");
-        gui.isSelectionActive = true;
-        cutTool.setTEnabled(true);
-        copyTool.setTEnabled(true);
-        cropTool.setTEnabled(true);
+        showFloating(ClipboardAction.clone(image), x, y);
     }
 
     public void setSelection(int x, int y, int w, int h, boolean isFull) {
-        if(isFull) {
-            x = startPoint.x = 0;
-            y = startPoint.y = 0;
-            w = endPoint.x  = gui.mainImage.getWidth();
-            h = endPoint.y = gui.mainImage.getHeight();
+        Rectangle canvas = new Rectangle(0, 0, gui.mainImage.getWidth(), gui.mainImage.getHeight());
+        Rectangle area = isFull ? canvas : new Rectangle(Math.min(x, x + w), Math.min(y, y + h), Math.abs(w), Math.abs(h)).intersection(canvas);
+        if(area.isEmpty()) {
+            clearImage(gui.tempImage);
+            gui.selectionResoLabel.setText("");
+            return;
         }
+        showFloating(liftPixels(area, null), area.x, area.y);
+    }
 
-        if(!gui.isSelectionActive) {
-            imgLoc = new Point(x, y);
-            temps = new Point(x, y);
-            tempe = new Point(endPoint.x, endPoint.y);
+    private void setFreeFormSelection(Path2D path) {
+        path.closePath();
+        Rectangle area = path.getBounds().intersection(new Rectangle(0, 0, gui.mainImage.getWidth(), gui.mainImage.getHeight()));
+        if(area.isEmpty()) {
+            clearImage(gui.tempImage);
+            gui.selectionResoLabel.setText("");
+            return;
         }
-        clearImage(gui.tempImage);
-        RecSelectionTool.setTempImage(gui.tempImage);
-        if(isFull) {
-            RecSelectionTool.draw(startPoint, new Point(endPoint.x-1, endPoint.y-1));
-        }
-        else {
-            RecSelectionTool.draw(startPoint, new Point(startPoint.x + w, startPoint.y + h));
-        }
+        showFloating(liftPixels(area, path), area.x, area.y);
+    }
 
-        sImage = getAndClearSelection(gui.mainImage, x, y, w, h);
-        gui.tempGraphics.drawImage(sImage, null, x, y);
-        gui.selectionResoLabel.setText(w + " ," + h + " px");
+    /**
+     * Shows the image as the floating selection at (x, y); it is stamped on the layer by drawImageSelected().
+     */
+    private void showFloating(BufferedImage image, int x, int y) {
+        sImage = image;
+        imgLoc = new Point(x, y);
+        redrawFloating();
         gui.isSelectionActive = true;
         cutTool.setTEnabled(true);
         copyTool.setTEnabled(true);
         cropTool.setTEnabled(true);
+        gui.view.repaint();
+    }
+
+    /**
+     * Replaces the floating image (e.g. rotated or filtered), keeping its top left corner.
+     */
+    public void setFloatingImage(BufferedImage image) {
+        if(gui.isSelectionActive) {
+            showFloating(image, imgLoc.x, imgLoc.y);
+        }
+    }
+
+    private void redrawFloating() {
+        temps = new Point(imgLoc.x, imgLoc.y);
+        tempe = new Point(imgLoc.x + sImage.getWidth(), imgLoc.y + sImage.getHeight());
+        clearImage(gui.tempImage);
+        RecSelectionTool.setTempImage(gui.tempImage);
+        RecSelectionTool.drawWithImage(sImage, temps, tempe);
+        gui.selectionResoLabel.setText(sImage.getWidth() + " ," + sImage.getHeight() + " px");
+    }
+
+    /**
+     * @return the floating selection's area on the canvas, or null when nothing is selected
+     */
+    public Rectangle getSelectionBounds() {
+        if(!gui.isSelectionActive || sImage == null) {
+            return null;
+        }
+        return new Rectangle(imgLoc.x, imgLoc.y, sImage.getWidth(), sImage.getHeight());
     }
 
     public void drawImageSelected() {
@@ -316,11 +385,29 @@ public class MainViewAction extends MouseAdapter implements ActionListener {
                 gui.view.repaint();
             }
             gui.isSelectionActive = false;
+            isInSelection = false;
             gui.selectionResoLabel.setText("");
             cutTool.setTEnabled(false);
             copyTool.setTEnabled(false);
             cropTool.setTEnabled(false);
         }
+    }
+
+    public void cancelSelection() {
+        if(gui.isSelectionActive) {
+            sImage = null;
+            clearImage(gui.tempImage);
+            gui.isSelectionActive = false;
+            isInSelection = false;
+            gui.selectionResoLabel.setText("");
+            cutTool.setTEnabled(false);
+            copyTool.setTEnabled(false);
+            cropTool.setTEnabled(false);
+        }
+    }
+
+    public Point getSelectionLocation() {
+        return imgLoc;
     }
 
     private boolean clickIsInBrushTools(Point point) {
@@ -375,7 +462,7 @@ public class MainViewAction extends MouseAdapter implements ActionListener {
             gui.tempGraphics.setColor(Color.BLACK);
             gui.tempGraphics.drawRect(x - half, y - half, size, size);
 
-            getAndClearSelection(gui.mainImage, x - half, y - half, size, size);
+            clearArea(gui.activeImage(), x - half, y - half, size, size);
             startPoint.resetPoint(endPoint.x, endPoint.y);
             return true;
         }
@@ -457,20 +544,18 @@ public class MainViewAction extends MouseAdapter implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         TButton button = (TButton)e.getSource();
+        gui.history.begin();
 
-        if(gui.activeToolName.equals("Rectangular Selection Tool") || gui.activeToolName.equals("Free-form Selection Tool")) {
-
-            if(button.getText().equals("Select all")) {
-                drawImageSelected();
-                setSelection(0, 0, 0, 0, true);
-            }
-            else if(button.getText().equals("Delete")) {
-                if(gui.isSelectionActive) {
-                    clearImage(sImage);
-                    clearImage(gui.tempImage);
-                    gui.view.repaint();
-                }
-            }
+        if(button.getText().equals("Select all")) {
+            ShapeAction.finishPending();
+            drawImageSelected();
+            gui.homeToolBar.imageTools.rectangularSecItem.doClick();
+            setSelection(0, 0, 0, 0, true);
         }
+        else if(button.getText().equals("Delete")) {
+            cancelSelection();
+            gui.view.repaint();
+        }
+        gui.history.end();
     }
 }

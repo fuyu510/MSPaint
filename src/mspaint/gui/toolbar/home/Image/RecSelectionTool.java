@@ -34,7 +34,7 @@ public class RecSelectionTool {
                 graphics.drawImage(image, null, x1, y1);
             }
             graphics.setPaint(paint);
-            graphics.drawRect(x1, y1, x2-x1, y2-y1);
+            graphics.drawRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2-x1), Math.abs(y2-y1));
         }
     }
 }
