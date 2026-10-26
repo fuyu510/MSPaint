@@ -60,6 +60,7 @@ import mspaint.gui.toolbar.ViewToolBar;
 import mspaint.helper.DropTools;
 import mspaint.helper.History;
 import mspaint.helper.Layer;
+import mspaint.helper.Point;
 import mspaint.gui.sidebar.LayersArea;
 import mspaint.helper.ResourceLoader;
 import mspaint.helper.View;
@@ -303,9 +304,15 @@ public class GUIHandler {
     public BufferedImage mergedImage() {
         BufferedImage merged = new BufferedImage(mainImage.getWidth(), mainImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = merged.createGraphics();
-        for(Layer layer : layers) {
+        for(int i = 0; i < layers.size(); i++) {
+            Layer layer = layers.get(i);
             if(layer.isVisible) {
                 g.drawImage(layer.image, 0, 0, null);
+                // a pasted or moved selection is not stamped on its layer until it is deselected
+                if(i == LayersArea.activeLayer && isSelectionActive && viewAction.sImage != null) {
+                    Point loc = viewAction.getSelectionLocation();
+                    g.drawImage(viewAction.sImage, loc.x, loc.y, null);
+                }
             }
         }
         g.dispose();
