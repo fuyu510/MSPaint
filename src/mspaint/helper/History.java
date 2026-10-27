@@ -25,6 +25,7 @@ public class History {
     private final Deque<int[][]> redoStack = new ArrayDeque<>();
     private int[][] pending;
     private boolean pendingPushed;
+    private int[][] saved;
 
     public History(GUIHandler gui) {
         this.gui = gui;
@@ -59,6 +60,20 @@ public class History {
 
     public void redo() {
         move(redoStack, undoStack);
+    }
+
+    /**
+     * Remembers the current pixels as the saved picture, e.g. after opening or saving a file.
+     */
+    public void markSaved() {
+        saved = snapshot();
+    }
+
+    /**
+     * @return whether the pixels differ from the ones last marked saved
+     */
+    public boolean isModified() {
+        return saved == null || !Arrays.deepEquals(saved, snapshot());
     }
 
     /**

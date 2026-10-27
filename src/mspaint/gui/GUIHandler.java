@@ -19,6 +19,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseWheelEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 import javax.swing.AbstractAction;
 import javax.swing.ImageIcon;
@@ -150,7 +152,14 @@ public class GUIHandler {
         updateImageInfo();
         frame.setSize(InitialValues.frameSize);
         frame.setLocationRelativeTo(null);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        history.markSaved();
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                fileMenu.getFileAction().exit();
+            }
+        });
         frame.setVisible(true);
     }
 
@@ -367,6 +376,7 @@ public class GUIHandler {
         setLayerImages(java.util.Collections.singletonList(image));
         layerSideBar.layersArea.rebuild();
         history.clear();
+        history.markSaved();
     }
 
     /**

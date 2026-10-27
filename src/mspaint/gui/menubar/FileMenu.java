@@ -119,8 +119,9 @@ public class FileMenu extends FileInvoker implements ActionListener {
             button.setToolTipText(file.getPath());
             button.addActionListener(e -> {
                 menu.setVisible(false);
-                gui.textAction.commit();
-                action.open(file);
+                if(action.confirmDiscard()) {
+                    action.open(file);
+                }
             });
             recentPanel.add(button, 0, i + 1);
         }

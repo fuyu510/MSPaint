@@ -19,6 +19,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import mspaint.action.home.ShapeAction;
 import mspaint.gui.GUIHandler;
 import mspaint.gui.menubar.FilePopupMenu;
 import mspaint.helper.ImageFilter;
@@ -73,7 +74,7 @@ public class FileMenuAction implements ActionListener {
                 "About MSPaint", JOptionPane.INFORMATION_MESSAGE);
         }
         else if(button.getText().equals("Exit")) {
-            System.exit(0);
+            exit();
         }
 
         else if(button.getName() != null) {
@@ -92,13 +93,17 @@ public class FileMenuAction implements ActionListener {
     }
 
     public void newFile() {
-        gui.textAction.commit();
+        if(!confirmDiscard()) {
+            return;
+        }
         BufferedImage blank = new BufferedImage(InitialValues.newImageWidth, InitialValues.newImageHeight, BufferedImage.TYPE_INT_ARGB);
         gui.newDocument(blank, null);
     }
 
     public void open() {
-        gui.textAction.commit();
+        if(!confirmDiscard()) {
+            return;
+        }
         JFileChooser chooser = new JFileChooser(gui.currentFile);
         chooser.addChoosableFileFilter(new ImageFilter());
         chooser.setAcceptAllFileFilterUsed(false);
@@ -107,14 +112,44 @@ public class FileMenuAction implements ActionListener {
         }
     }
 
-    public void save() {
+    /**
+     * @return whether the picture was saved
+     */
+    public boolean save() {
         gui.textAction.commit();
         if(gui.currentFile != null) {
-            write(gui.currentFile);
+            return write(gui.currentFile);
         }
-        else {
-            saveAs(null);
+        return saveAs(null);
+    }
+
+    /**
+     * Quits, first offering to save the picture if it has changes that are not saved.
+     */
+    public void exit() {
+        if(confirmDiscard()) {
+            System.exit(0);
         }
+    }
+
+    /**
+     * Offers to save the picture if it has changes that are not saved, before it is closed or replaced.
+     * @return false when the user cancelled, or chose to save and the picture was not saved
+     */
+    public boolean confirmDiscard() {
+        gui.textAction.commit();
+        gui.history.begin();
+        ShapeAction.finishPending();
+        gui.history.end();
+        if(!gui.history.isModified()) {
+            return true;
+        }
+        final String name = (gui.currentFile != null) ? gui.currentFile.getName() : "Untitled";
+        final int answer = JOptionPane.showConfirmDialog(gui.frame, "Do you want to save changes to " + name + "?", "MSPaint", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+        if(answer == JOptionPane.YES_OPTION) {
+            return save();
+        }
+        return answer == JOptionPane.NO_OPTION;
     }
 
     public void open(File file) {
@@ -132,8 +167,9 @@ public class FileMenuAction implements ActionListener {
 
     /**
      * Asks for a file name and saves; the format comes from the extension, defaulting to the given one.
+     * @return whether the picture was saved
      */
-    public void saveAs(String extension) {
+    public boolean saveAs(String extension) {
         gui.textAction.commit();
         JFileChooser chooser = new JFileChooser(gui.currentFile);
         chooser.setAcceptAllFileFilterUsed(false);
@@ -160,7 +196,7 @@ public class FileMenuAction implements ActionListener {
         chooser.setSelectedFile(new File(baseName + "." + extension));
 
         if(chooser.showSaveDialog(gui.frame) != JFileChooser.APPROVE_OPTION) {
-            return;
+            return false;
         }
         File file = chooser.getSelectedFile();
         if(getExtension(file) == null) {
@@ -170,13 +206,13 @@ public class FileMenuAction implements ActionListener {
         if(file.exists()) {
             final int answer = JOptionPane.showConfirmDialog(gui.frame, file.getName() + " already exists.\nDo you want to replace it?", "Confirm Save As", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
             if(answer != JOptionPane.YES_OPTION) {
-                return;
+                return false;
             }
         }
-        write(file);
+        return write(file);
     }
 
-    private void write(File file) {
+    private boolean write(File file) {
         String format = getExtension(file);
         if(format == null) {
             format = "png";
@@ -195,8 +231,11 @@ public class FileMenuAction implements ActionListener {
             gui.currentFile = file;
             RecentFiles.add(file);
             gui.updateImageInfo();
+            gui.history.markSaved();
+            return true;
         } catch (IOException e) {
             JOptionPane.showMessageDialog(gui.frame, "Could not save " + file.getName() + ":\n" + e.getMessage(), "Save", JOptionPane.ERROR_MESSAGE);
+            return false;
         }
     }
 
